@@ -1,0 +1,26 @@
+INSERT INTO tb_Berechtigten(
+Berechtigten_ID,
+Berechtigten_Geschlecht_ID,
+Berechtigten_Name,
+Berechtigten_Vorname, 
+Berechtigten_Adresse_Strasse,
+Berechtigten_Adresse_H_Nr,
+Berechtigten_Adresse_ORT,
+Berechtigten_Adresse_PLZ,
+Berechtigten_Geburtsdatum,
+Berechtigten_Telefonnr,
+Berechtigten_Verwandschaftsgrad,
+Berechtigten_Notfallkontakt)
+SELECT  [ID],
+		[gender],
+		[LastName],
+      [FirstName],
+      [AddressLine1],
+	  [Housenr],
+	  [City],
+      [PostalCode],
+	  [BirthDate],
+	  [PhoneNumber],
+	  [Verwandschaftsgrad],
+      [Notfallkontakt]
+FROM Berechtigten_Daten_upd
