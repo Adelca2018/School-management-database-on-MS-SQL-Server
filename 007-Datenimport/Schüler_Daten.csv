@@ -1,0 +1,32 @@
+﻿ID;BirthDate;FirstName;LastName;gender;student-ID;EmailAddress;AddressLine1;Housenr;City;PostalCode;;PhoneNumber;Schüler_Schulbeginn;Abschlussjahrgang
+1;01.10.2010;Michael;Reiter;1;1;tsvi0@adventure-works.com;1010 Maple;1;Baltimore;21201;;664-555-0112;2016;2028
+3;09.03.2003;Kendall;Rounthwaite;1;2;robert0@adventure-works.com;1094 Loveridge Circle;3;Beaverton;97005;;589-555-0147;2009;2021
+6;06.07.2009;Susan;Kurjan;2;3;kevin1@adventure-works.com;1007 Deercreek Ln;4;Bellingham;90706;;714-555-0138;2015;2027
+8;15.04.2008;Russell;Lee;1;4;don0@adventure-works.com;1057 Kirker Pass Road;6;Bellingham;98225;;100-555-0174;2014;2026
+10;24.05.2010;Sylvester;Johnson;2;5;steve0@adventure-works.com;1002 N. Spoonwood Court;78;Bendigo;94704;;712-555-0170;2016;2028
+14;02.09.2011;Betsy;Rothkugel;3;6;michael1@adventure-works.com;1019 Carletto Drive;55;Berkeley;94704;;454-555-0119;2017;2021
+15;29.01.2008;Samantha;Walker;1;7;brian3@adventure-works.com;11, avenue du Président-Kennedy;3;Bobigny;93000;;716-555-0127;2014;2026
+17;17.05.2009;Michael;Welcker;2;8;john4@adventure-works.com;11, quai de l´ Iton;1;Boulogne-Billancourt;92100;;254-555-0114;2015;2020
+18;27.08.2004;Doloris;Ersan;1;9;kitti0@adventure-works.com;1, rue de Varenne;2;Boulogne-Billancourt;92100;;785-555-0132;2010;2015
+22;13.11.2007;Mike;Sacksteder;2;10;lane0@adventure-works.com;1020 Book Road;14;Bremerton;98312;;200-555-0117;2013;2018
+24;25.01.2009;Jan;Fitzgerald;2;12;charles0@adventure-works.com;1008 Lydia Lane;75;Bremerton;98312;;931-555-0118;2015;2020
+25;03.05.2007;Linda;Decker;2;11;barbara0@adventure-works.com;1016 Park Avenue;63;Burbank;91502;;119-555-0192;2013;2018
+26;03.01.2005;Anibal;Hesse;1;13;lolan0@adventure-works.com;1054 Vine Circle;44;Burbank;91502;;582-555-0178;2011;2016
+29;25.12.2012;Sandra;Galvin;1;26;michael5@adventure-works.com;1077 Willow Court;54;Burbank;91502;;296-555-0121;2018;2022
+30;18.03.2007;Gordon;Galvin;2;14;janice0@adventure-works.com;1077 Willow Court;54;Burbank;98168;;473-555-0117;2013;2019
+32;10.05.2008;Pat;Young;1;15;garrett0@adventure-works.com;1029 Birchwood Dr;87;Burien;98168;;609-555-0179;2014;2020
+33;05.11.2013;Cynthia;Ingle;2;16;stuart1@adventure-works.com;1028 Royal Oak Rd.;33;Burlingame;94010;;539-555-0149;2019;2023
+34;20.05.2014;Denise;Philips;1;27;marc0@adventure-works.com;1083 W. Hookston Road;60;Burlingame;95000;;234-555-0169;2019;2023
+35;17.12.2007;Mandar;Philips;1;17;carol0@adventure-works.com;1083 W. Hookston Road;60;Burlingame;95000;;609-555-0153;2013;2019
+38;17.05.2008;John;Tibbott;2;18;jason0@adventure-works.com;11, quai de l´ Iton;80;Chatou;78400;;571-555-0179;2014;2020
+39;05.09.2007;Janeth;Kim;1;19;ivo0@adventure-works.com;1071 Stanz Grace St.;40;Chula Vista;91910;;115-555-0179;2013;2019
+41;24.04.2012;Mary;Ortiz;2;20;ranjit0@adventure-works.com;1044 San Carlos;59;Cincinnati;91910;;1 (11) 500 555-0117;2018;2022
+42;22.06.2006;Olinda;Ortiz;2;27;david2@adventure-works.com;1044 San Carlos;59;Cincinnati;91910;;712-555-0119;2012;2018
+43;26.06.2007;Shelley;Alderson;1;21;greg0@adventure-works.com;101 Adobe Dr;41;Coffs Harbour;2450;;332-555-0150;2013;2019
+44;15.06.2010;Ashvini;Wu-Alderson;2;28;peng0@adventure-works.com;101 Adobe Dr;41;Coffs Harbour;2450;;164-555-0164;2016;2028
+46;12.11.2010;Garrett;Tomic;1;22;dragan0@adventure-works.com;1005 Fremont Street;76;Colma;94014;;117-555-0185;2016;2021
+48;10.07.2005;Raymond;Reeves;2;23;terrence0@adventure-works.com;1005, rue des Bouchers;84;Colombes;92700;;110-555-0115;2011;2017
+49;13.09.2007;Dan;Reeves;2;29;randy0@adventure-works.com;1005, rue des Bouchers;84;Colombes;92700;;961-555-0122;2013;2025
+50;26.10.2007;Angela;Pellow;1;24;paul1@adventure-works.com;1032 Cowell Road;86;Colombes;92700;;727-555-0112;2013;2018
+51;16.10.2010;Michael;Pellow;2;30;frank2@adventure-works.com;1032 Cowell Road;86;Colombes;92700;;163-555-0147;2016;2022
+52;12.05.2006;Mark;Spoon-Alberts;1;25;candy0@adventure-works.com;11, allée des Princes;112;Colombes;92700;;920-555-0177;2012;2024
