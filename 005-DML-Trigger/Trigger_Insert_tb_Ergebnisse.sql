@@ -8,9 +8,9 @@ GO
 -- =============================================
 -- Author:		Adeline Makoudjou
 -- Create date: 29.04.2020
--- Description:	Dies Trigger testet, wenn ein neuer Datensatz in tb_Ergebnisse hingefügt wird,
+-- Description:	Dies Trigger testet, wenn ein neuer Datensatz in tb_Ergebnisse hinzugefÃ¼gt wird,
 -------------- dass es noch nicht diese Note existiert. Falls der Datensazt schon da war dann ist eine Meldung
--------------- geschrieben
+--------------in  der Tabelle Ergebnisse_Meldungen geschrieben
 -- =============================================
 DROP TRIGGER IF EXISTS [dbo].[tr_Ergebnisse_INSERT_Test]
 GO
@@ -26,7 +26,7 @@ BEGIN
     
 	
 	DECLARE @Ergebnis_Datum date;
-	DECLARE @Schüler_ID     int;
+	DECLARE @SchÃ¼ler_ID     int;
     DECLARE @Schulfach_ID int;
     DECLARE @Aufgabenart_ID   int;
     DECLARE @Klassen_ID   int;
@@ -34,7 +34,7 @@ BEGIN
 
 
 	SELECT @Schulfach_ID = Schulfach_ID  FROM inserted;
-	SELECT @Schüler_ID = Schüler_ID FROM inserted;
+	SELECT @SchÃ¼ler_ID = SchÃ¼ler_ID FROM inserted;
 	SELECT @Ergebnis_Datum = Ergebnis_Datum FROM inserted;
 	SELECT @Klassen_ID  = Klassen_ID  FROM inserted;
 	SELECT @Aufgabenart_ID  = Aufgabenart_ID FROM inserted;
@@ -43,7 +43,7 @@ BEGIN
 
 	SELECT  @count= Count(*)
 	FROM dbo.tb_Ergebnisse 
-	Where (Schulfach_ID = @Schulfach_ID AND Schüler_ID = @Schüler_ID AND Ergebnis_Datum = @Ergebnis_Datum
+	Where (Schulfach_ID = @Schulfach_ID AND SchÃ¼ler_ID = @SchÃ¼ler_ID AND Ergebnis_Datum = @Ergebnis_Datum
 	        AND Klassen_ID  = @Klassen_ID AND Aufgabenart_ID  = @Aufgabenart_ID);
 
 	----- Wenn @count>0 dann ist disen Datensatz schon da
@@ -55,12 +55,12 @@ BEGIN
 		DECLARE @schulfach_name  nvarchar(50);
 		DECLARE @Aufgabenart    nvarchar(50);
 		
-		SELECT @schuler_name  = dbo.tb_Schüler.Schüler_Name
-		FROM dbo.tb_Schüler
-		WHERE Schüler_ID = @Schüler_ID;
+		SELECT @schuler_name  = dbo.tb_SchÃ¼ler.SchÃ¼ler_Name
+		FROM dbo.tb_SchÃ¼ler
+		WHERE SchÃ¼ler_ID = @SchÃ¼ler_ID;
 		
-		SELECT @schulfach_name  = dbo.tb_Schulfächer.Schulfach_Bezeichnung
-		FROM dbo.tb_Schulfächer
+		SELECT @schulfach_name  = dbo.tb_SchulfÃ¤cher.Schulfach_Bezeichnung
+		FROM dbo.tb_SchulfÃ¤cher
 		WHERE Schulfach_ID = @Schulfach_ID; 
 
 		SELECT @Aufgabenart  = dbo.tb_Aufgabenarten.Aufgabenart_Bezeichnung
@@ -77,8 +77,8 @@ BEGIN
 
 		DECLARE @msg AS varchar(MAX);
 		SET @msg = 
-		FORMATMESSAGE('Es gibt schon eine Note für Schüler %s für Schulfach  %s für  Aufgabenart %s für  Klasse %i im Tag %i Monat %i Jahr
-		%i. Bitte überprüfen!', 
+		FORMATMESSAGE('Es gibt schon eine Note fÃ¼r SchÃ¼ler %s fÃ¼r Schulfach  %s fÃ¼r  Aufgabenart %s fÃ¼r  Klasse %i im Tag %i Monat %i Jahr
+		%i. Bitte Ã¼berprÃ¼fen!', 
 		@schuler_name , @schulfach_name, @Aufgabenart, @Klassen_ID,@Tag, @Monat, @Jahr);
 		
 		
