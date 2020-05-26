@@ -1,0 +1,1567 @@
+﻿USE [master]
+GO
+/****** Object:  Database [Schulnotenverwaltung_Draft]    Script Date: 30/04/2020 10:50:20 ******/
+CREATE DATABASE [Schulnotenverwaltung_Draft]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'Schulnotenverwaltung_Draft', FILENAME = N'C:\Users\Temti\Desktop\SQL\Schulnotenverwaltung_Draft' , SIZE = 73728KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'Schulnotenverwaltung_Draft_log', FILENAME = N'C:\Users\Temti\Desktop\SQL\Schulnotenverwaltung_Draft_log.ldf' , SIZE = 73728KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [Schulnotenverwaltung_Draft].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET  DISABLE_BROKER 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET RECOVERY SIMPLE 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET  MULTI_USER 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET QUERY_STORE = OFF
+GO
+USE [Schulnotenverwaltung_Draft]
+GO
+/****** Object:  User [Max_Mustermann_007]    Script Date: 30/04/2020 10:50:20 ******/
+CREATE USER [Max_Mustermann_007] FOR LOGIN [Direktor] WITH DEFAULT_SCHEMA=[dbo]
+GO
+/****** Object:  User [Charles_Gaulles_005]    Script Date: 30/04/2020 10:50:20 ******/
+CREATE USER [Charles_Gaulles_005] FOR LOGIN [Lehrer] WITH DEFAULT_SCHEMA=[dbo]
+GO
+/****** Object:  UserDefinedFunction [dbo].[sf_Count_Klasse_Per_Lehrer_Schuljahr]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+  -------------------
+
+  --  Diese Funktion zeigt die Zahl von Klasse, die ein Lehrer 
+  --ein Schuljahr unterrichtet hat
+
+  --------------------------
+
+CREATE FUNCTION [dbo].[sf_Count_Klasse_Per_Lehrer_Schuljahr] 
+(
+	@Mitarbeiter_ID int,	
+	@Schuljahr nvarchar(9)
+	
+)
+RETURNS int
+AS
+BEGIN
+	DECLARE @CountOfRecords int;
+	SELECT @CountOfRecords = COUNT(distinct Klassen_ID)
+	FROM dbo.tb_Verbindung_Lehrer_Klasse_Schuljahr
+	WHERE Mitarbeiter_ID = @Mitarbeiter_ID
+	AND Schuljahr = @Schuljahr  ;
+
+	RETURN @CountOfRecords;
+END
+GO
+/****** Object:  UserDefinedFunction [dbo].[sf_is_schuler_schon_in_der_Schule]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+  -------------------
+
+  --  Diese Funktion gibt die Note einer Schüler in eimem Fach
+  -- in einem bestimmten Klasse
+  --------------------------
+
+CREATE FUNCTION [dbo].[sf_is_schuler_schon_in_der_Schule] 
+(
+	 @Schüler_Name nchar(30),
+     @Schüler_Vorname nchar(20),
+     @Schüler_Geschlecht_ID int,
+     @Schüler_Geburtstag date
+    
+	
+)
+RETURNS int
+AS
+BEGIN
+	DECLARE @value int;
+		
+	SELECT @value=count (*)
+	FROM dbo.tb_Schüler
+	 WHERE Schüler_Name= @Schüler_Name
+	AND Schüler_Vorname= @Schüler_Vorname 
+	AND Schüler_Geschlecht_ID=@Schüler_Geschlecht_ID
+	AND Schüler_Geburtstag=@Schüler_Geburtstag;
+	IF @value>0 
+	Set @value=1;
+	ELSE
+	Set @value=0;
+
+	RETURN  @value;
+END
+GO
+/****** Object:  UserDefinedFunction [dbo].[sf_Note_Schuler_Fach_Klasse]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+  -------------------
+
+  --  Diese Funktion gibt die Note einer Schüler in eimem Fach
+  -- in einem bestimmten Klasse
+  --------------------------
+
+CREATE FUNCTION [dbo].[sf_Note_Schuler_Fach_Klasse] 
+(
+	@Schüler_ID int,	
+	@Klassen_ID int, 
+	@Schulfach_ID int
+	
+)
+RETURNS int
+AS
+BEGIN
+	DECLARE @Note int;
+		
+	SELECT @Note=avg (Note)
+	FROM dbo.tb_Ergebnisse
+	WHERE Schüler_ID= @Schüler_ID
+	AND Klassen_ID = @Klassen_ID 
+	AND Schulfach_ID=@Schulfach_ID
+		
+	RETURN @Note;
+END
+GO
+/****** Object:  UserDefinedFunction [dbo].[tfms_CURSOR_Noten_Schuler_Klasse_Fach_schuljahr]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- =============================================
+-- Author:		Adeline Makoudjou
+-- Create date: 27.04.2020
+-- Description:	gibt alle die Noten allen schüler einer 
+--Klasse in einem Schuljahr für ein bestimmstes Schulfach
+
+-- Benutzt unsere eigene Funktion dbo.[sf_Note_Schuler_Fach_Klasse] (sehe datei '001-01_sf_Note_Schuler_Fach_Klasse' in Ordner)
+-- um die Note für jeden Schuler zu berechnen
+
+-- =============================================
+CREATE FUNCTION [dbo].[tfms_CURSOR_Noten_Schuler_Klasse_Fach_schuljahr] 
+(
+	@Klassen_ID int, 
+	@Schuljahr nvarchar(9),
+	@Schulfach_ID int
+)
+
+RETURNS 
+@Note_alle_Schuler_Schulfach_Klasse_schuljahr TABLE  
+(
+    Schüler_ID int,
+	Schüler_Name NVARCHAR(30),
+	Schüler_Vorname NVARCHAR(20),
+	Note int
+	
+)
+AS
+BEGIN
+	DECLARE @Schüler_Name NVARCHAR(30);
+	DECLARE @Schüler_Vorname NVARCHAR(20);
+	DECLARE @Note int;
+	DECLARE @Schüler_ID int;
+--	DECLARE @Schüler_Geschlecht nchar(10);
+	-------------------------------
+	DECLARE db_cursor CURSOR FOR
+	SELECT Schüler_ID,Schüler_Name , Schüler_Vorname
+	FROM tf_alle_Schuler_Klasse_schuljahr (@Klassen_ID,@Schuljahr)
+	
+		OPEN db_cursor;
+		FETCH NEXT FROM db_cursor -- go to record 1
+		INTO @Schüler_ID, @Schüler_Name, @Schüler_Vorname;
+		WHILE @@FETCH_STATUS = 0 
+		BEGIN			
+			SET @Note= 
+				dbo.[sf_Note_Schuler_Fach_Klasse] (@Schüler_ID, @Klassen_ID,@Schulfach_ID);
+			-- Tabelle füllen --
+			INSERT INTO @Note_alle_Schuler_Schulfach_Klasse_schuljahr
+			VALUES(@Schüler_ID, @Schüler_Name, @Schüler_Vorname, @Note);
+			FETCH NEXT FROM db_cursor -- go to next record
+			INTO @Schüler_ID, @Schüler_Name, @Schüler_Vorname;
+		END	
+	CLOSE db_cursor  
+	DEALLOCATE db_cursor
+	--------------------------------		
+	RETURN 
+END
+GO
+/****** Object:  Table [dbo].[tb_Verbindung_Berechtigten_Schüler]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Verbindung_Berechtigten_Schüler](
+	[Berechtigten_ID] [int] NOT NULL,
+	[Schüler_ID] [int] NOT NULL,
+	[Verwandschaftsgrad_ID] [int] NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Schulform_Qualifikation]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Schulform_Qualifikation](
+	[Schulform_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Schulform_Bezeichnung] [nchar](20) NOT NULL,
+	[Schulform_Kommentar] [nchar](20) NULL,
+ CONSTRAINT [PK_Schulform] PRIMARY KEY CLUSTERED 
+(
+	[Schulform_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Berechtigten]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Berechtigten](
+	[Berechtigten_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Berechtigten_Geschlecht_ID] [int] NOT NULL,
+	[Berechtigten_Name] [nchar](30) NOT NULL,
+	[Berechtigten_Vorname] [nchar](20) NOT NULL,
+	[Berechtigten_Geburtsdatum] [date] NOT NULL,
+	[Berechtigten_Adresse_Strasse] [nchar](50) NOT NULL,
+	[Berechtigten_Adresse_H_Nr] [int] NOT NULL,
+	[Berechtigten_Adresse_PLZ] [nchar](5) NOT NULL,
+	[Berechtigten_Adresse_ORT] [nchar](30) NOT NULL,
+	[Berechtigten_Notfallkontakt] [bit] NOT NULL,
+	[Berechtigten_Telefonnr] [nchar](20) NOT NULL,
+ CONSTRAINT [PK_tb_Berechtigten-fertig] PRIMARY KEY CLUSTERED 
+(
+	[Berechtigten_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Klassen]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Klassen](
+	[Klassen_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Klassen_Stufe] [int] NOT NULL,
+	[Klassen_Untergruppe] [int] NULL,
+	[Schulform_ID] [int] NOT NULL,
+ CONSTRAINT [PK_tb_Klassen] PRIMARY KEY CLUSTERED 
+(
+	[Klassen_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Schüler]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Schüler](
+	[Schüler_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Schüler_Name] [nchar](30) NOT NULL,
+	[Schüler_Vorname] [nchar](20) NOT NULL,
+	[Schüler_Geschlecht_ID] [int] NOT NULL,
+	[Schüler_Geburtstag] [date] NOT NULL,
+	[Schüler_Adresse_Strasse] [nchar](50) NOT NULL,
+	[Schüler_Adresse_H_Nr] [int] NOT NULL,
+	[Schüler_Adresse_PLZ] [nchar](5) NOT NULL,
+	[Schüler_Adresse_Ort] [nchar](30) NOT NULL,
+	[Schüler_Schulbeginn] [int] NOT NULL,
+	[Schüler_Abschlussjahrgang] [int] NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Verbindung_Schueler_Klasse]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Verbindung_Schueler_Klasse](
+	[Schüler_ID] [int] NOT NULL,
+	[Klassen_ID] [int] NOT NULL,
+	[Schuljahr] [nvarchar](9) NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[Übersicht_Notfallkontakte_Schüler]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[Übersicht_Notfallkontakte_Schüler] AS
+SELECT H.Berechtigten_Name AS 'Notfallkontakt',H.Berechtigten_Telefonnr AS 'Telefon-Nr.', P.Schüler_Vorname, P.Schüler_Name, N.Klassen_Stufe,M.Schulform_Bezeichnung
+FROM dbo.tb_Berechtigten H
+INNER JOIN dbo.tb_Verbindung_Berechtigten_Schüler Q
+ON H.Berechtigten_ID= Q.Berechtigten_ID
+INNER JOIN dbo.tb_Schüler P
+ON Q.Schüler_ID=P.Schüler_ID
+INNER JOIN dbo.tb_Verbindung_Schueler_Klasse L
+ON P.Schüler_ID=L.Schüler_ID
+INNER JOIN dbo.tb_Klassen N
+ON L.Klassen_ID=N.Klassen_ID
+INNER JOIN dbo.Schulform_Qualifikation M
+ON N.Schulform_ID=M.Schulform_ID
+WHERE H.Berechtigten_Notfallkontakt =1
+AND L.Schuljahr ='2019-2020';
+GO
+/****** Object:  Table [dbo].[tb_Mitarbeiter]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Mitarbeiter](
+	[Mitarbeiter_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Mitarbeiter_Personalnummer] [int] NOT NULL,
+	[Mitarbeiter_Geschlecht_ID] [int] NOT NULL,
+	[Mitarbeiter_Nachname] [nvarchar](50) NOT NULL,
+	[Mitarbeiter_Vorname] [nvarchar](50) NOT NULL,
+	[Mitarbeiter_Funktion] [nvarchar](50) NULL,
+	[Schulform_ID] [int] NULL,
+ CONSTRAINT [PK_tb_Ergebnissen] PRIMARY KEY CLUSTERED 
+(
+	[Mitarbeiter_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[Liste_Lehrer_Schulform]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE VIEW [dbo].[Liste_Lehrer_Schulform]
+AS
+SELECT	Schulform_ID AS Schulform
+		, Mitarbeiter_Personalnummer AS Personalnummer
+		, Mitarbeiter_Nachname AS Nachname
+		, Mitarbeiter_Vorname AS Vorname
+FROM    dbo.tb_Mitarbeiter
+WHERE   (Mitarbeiter_Funktion = N'Lehrer')
+GO
+/****** Object:  View [dbo].[Liste_Schüler_Abschlussjahr2020]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+---------------------------------------------------------------------------------------------------
+---- Abfrage 2: Auswahl der Schüler, die in 2020 ihre Schulform abschließen, sortiert nach Nachname
+---- Sicht "Liste_Schüler_Abschlussjahr2020"
+---------------------------------------------------------------------------------------------------
+
+--SELECT	 [Schüler_Name] AS Nachname
+--		,[Schüler_Vorname] AS Vorname
+--		,[Schüler_Adresse_Strasse] AS Strasse
+--		,[Schüler_Adresse_H_Nr] AS Hausnr
+--		,[Schüler_Adresse_PLZ] AS PLZ
+--		,[Schüler_Adresse_Ort] AS Ort
+--		,((year(GETDATE())*12*31+month(GETDATE())*31+day(GETDATE()))
+--			-(year(Schüler_Geburtstag)*12*31+month(Schüler_Geburtstag)*31+day(Schüler_Geburtstag)))/(12*31) AS 'Alter'
+--		,[Schüler_Geschlecht_ID] AS Geschlecht
+--FROM [Schulnotenverwaltung_Draft].[dbo].[tb_Schüler]
+--WHERE [Schüler_Abschlussjahrgang] = '2020'
+--ORDER BY [Schüler_Name]
+
+
+CREATE VIEW [dbo].[Liste_Schüler_Abschlussjahr2020]
+AS
+SELECT	Schüler_Name AS Nachname
+		, Schüler_Vorname AS Vorname
+		, Schüler_Adresse_Strasse AS Straße
+		, Schüler_Adresse_H_Nr AS Hausnr
+		, Schüler_Adresse_PLZ AS PLZ
+		, Schüler_Adresse_Ort AS Ort
+		, Schüler_Geburtstag AS Geburtsdatum
+		, Schüler_Geschlecht_ID AS Geschlecht
+FROM    dbo.tb_Schüler
+WHERE   (Schüler_Abschlussjahrgang = 2020)
+GO
+/****** Object:  View [dbo].[Übersicht_Anzahl_aller_Schüler_pro_Schulform]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE VIEW [dbo].[Übersicht_Anzahl_aller_Schüler_pro_Schulform] AS
+SELECT COUNT(tb_Verbindung_Schueler_Klasse.Schüler_ID) AS "Anzahl Schuler", 
+	[Schulform_Qualifikation].Schulform_Bezeichnung
+FROM tb_Verbindung_Schueler_Klasse
+JOIN  tb_Klassen ON tb_Verbindung_Schueler_Klasse.Klassen_ID = tb_Klassen.Klassen_ID
+JOIN [Schulform_Qualifikation] ON tb_Klassen.[Schulform_ID] = Schulform_Qualifikation.Schulform_ID
+WHERE tb_Verbindung_Schueler_Klasse.Schuljahr = '2019-2020'
+	GROUP BY [Schulform_Qualifikation].Schulform_Bezeichnung;
+GO
+/****** Object:  Table [dbo].[tb_Ergebnisse]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Ergebnisse](
+	[Ergebnis_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Ergebnis_Datum] [date] NOT NULL,
+	[Schüler_ID] [int] NOT NULL,
+	[Schulfach_ID] [int] NOT NULL,
+	[Aufgabenart_ID] [int] NOT NULL,
+	[Note] [int] NOT NULL,
+	[Klassen_ID] [int] NOT NULL,
+	[Raum_ID] [int] NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[Notendurchschnitt_pro_Schüler]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE VIEW [dbo].[Notendurchschnitt_pro_Schüler] AS
+SELECT  AVG(tb_Ergebnisse.Note) AS Notendurchschnitt,s.Schüler_ID
+FROM tb_Ergebnisse
+LEFT JOIN tb_Schüler S ON S.Schüler_ID = tb_Ergebnisse.Schüler_ID
+GROUP BY s.Schüler_ID
+GO
+/****** Object:  Table [dbo].[tb_Schulfächer]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Schulfächer](
+	[Schulfach_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Schulfach_Bezeichnung] [nvarchar](50) NOT NULL,
+	[Schulfach_Kategorie] [nchar](20) NULL,
+ CONSTRAINT [PK_tb_Schulfach] PRIMARY KEY CLUSTERED 
+(
+	[Schulfach_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr](
+	[Mitarbeiter_ID] [int] NOT NULL,
+	[Schulfach_ID] [int] NOT NULL,
+	[Klassen_ID] [int] NOT NULL,
+	[Schuljahr] [nvarchar](9) NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[Notendurchschnitt_pro_Lehrer_pro_Schulfach]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-----------------------------------------------------------------
+--diese Ansicht zeigt den Notendurchschnitt der Schüler in dem jeweiligen Fach, welche ein Lehrer unterrichtet
+--diese Abfrage hat Potential für eine Tabellenfunktion
+-----------------------------------------------------------------
+
+CREATE VIEW [dbo].[Notendurchschnitt_pro_Lehrer_pro_Schulfach] AS
+SELECT 
+dbo.tb_Klassen.Klassen_Stufe, 
+dbo.tb_Klassen.Klassen_Untergruppe,
+dbo.tb_Schulfächer.Schulfach_Bezeichnung, 
+dbo.tb_Schüler.Schüler_Name, 
+dbo.tb_Schüler.Schüler_Vorname,
+dbo.tb_Ergebnisse.Schüler_ID,
+AVG(dbo.tb_Ergebnisse.Note) AS Notendurchnitt
+FROM dbo.tb_Ergebnisse 
+INNER JOIN dbo.tb_Schulfächer ON dbo.tb_Ergebnisse.Schulfach_ID = dbo.tb_Schulfächer.Schulfach_ID 
+INNER JOIN dbo.tb_Schüler ON tb_Ergebnisse.Schüler_ID = dbo.tb_Schüler.Schüler_ID  
+INNER JOIN dbo.tb_Klassen ON dbo.tb_Ergebnisse.Klassen_ID = dbo.tb_Klassen.Klassen_ID 
+INNER JOIN dbo.tb_Verbindung_Lehrer_Klasse_Schuljahr ON tb_Verbindung_Lehrer_Klasse_Schuljahr.Klassen_ID=dbo.tb_Klassen.Klassen_ID
+WHERE tb_Verbindung_Lehrer_Klasse_Schuljahr.Mitarbeiter_ID = 8
+GROUP BY dbo.tb_Klassen.Klassen_Stufe, 
+dbo.tb_Klassen.Klassen_Untergruppe, 
+dbo.tb_Schulfächer.Schulfach_Bezeichnung, 
+dbo.tb_Schüler.Schüler_Name,
+dbo.tb_Schüler.Schüler_Vorname, 
+dbo.tb_Ergebnisse.Schüler_ID
+GO
+/****** Object:  Table [dbo].[Geschlecht]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Geschlecht](
+	[Geschlecht_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Geschlecht_Bezeichnung] [nchar](10) NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Verbindung_Lehrer_Schulfach]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Verbindung_Lehrer_Schulfach](
+	[Mitarbeiter_ID] [int] NOT NULL,
+	[Schulfach_ID] [int] NOT NULL
+) ON [PRIMARY]
+GO
+/****** Object:  UserDefinedFunction [dbo].[tf_Geschlechterverteilung_Schulfach_Schulform]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/*Diese Funktion gibt eine Übersicht über die Geschlechterverteilung pro Schulform in dem jeweiligen Fach
+*/
+CREATE FUNCTION [dbo].[tf_Geschlechterverteilung_Schulfach_Schulform] 
+(	
+
+	@Schulfach_Bezeichnung nvarchar(30)
+
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+		SELECT  x.Schulfach_Bezeichnung,
+	c.Schulform_Bezeichnung,
+	u.Geschlecht_Bezeichnung,
+	COUNT(DISTINCT h.Mitarbeiter_ID) AS Lehreranzahl_gesamt
+	FROM tb_Mitarbeiter h 
+	INNER JOIN tb_Verbindung_Lehrer_Schulfach p
+		ON h.Mitarbeiter_ID=p.Mitarbeiter_ID
+	INNER JOIN tb_Schulfächer x
+		ON x.Schulfach_ID=p.Schulfach_ID
+	INNER JOIN dbo.Schulform_Qualifikation c
+		ON c.Schulform_ID=h.Schulform_ID
+	INNER JOIN dbo.Geschlecht u
+		ON h.Mitarbeiter_Geschlecht_ID=u.Geschlecht_ID
+	WHERE x.Schulfach_Bezeichnung = @Schulfach_Bezeichnung
+	GROUP BY ROLLUP(x.Schulfach_Bezeichnung,
+	c.Schulform_Bezeichnung,
+	u.Geschlecht_Bezeichnung)
+)
+GO
+/****** Object:  View [dbo].[Übersicht_MA_Schulform_Schulfach]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+CREATE VIEW [dbo].[Übersicht_MA_Schulform_Schulfach] AS
+		SELECT M.Mitarbeiter_Vorname, M.Mitarbeiter_Nachname, M.Mitarbeiter_Funktion, Q.Schulform_Bezeichnung as Qualifikation, F.Schulfach_Bezeichnung
+		FROM [tb_Mitarbeiter] M 
+		LEFT JOIN [Schulform_Qualifikation] Q 
+			ON  M.Schulform_ID=Q.Schulform_ID 
+		LEFT JOIN [tb_Verbindung_Lehrer_Schulfach] LS
+			ON  LS.Mitarbeiter_ID= M.Mitarbeiter_ID 
+		LEFT JOIN [tb_Schulfächer] F
+			ON F.Schulfach_ID=LS.Schulfach_ID;
+GO
+/****** Object:  View [dbo].[Übersicht_Lehrer_Schulform_Schulfach]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE VIEW [dbo].[Übersicht_Lehrer_Schulform_Schulfach] AS
+	SELECT M.Mitarbeiter_Vorname, M.Mitarbeiter_Nachname,  Q.Schulform_Bezeichnung as Qualifikation,F.Schulfach_Bezeichnung
+	FROM [tb_Mitarbeiter] M 
+	INNER JOIN [Schulform_Qualifikation] Q 
+		ON  M.Schulform_ID=Q.Schulform_ID 
+	INNER JOIN [tb_Verbindung_Lehrer_Schulfach] LS
+		ON  LS.Mitarbeiter_ID= M.Mitarbeiter_ID 
+	Inner JOIN [tb_Schulfächer] F
+		ON F.Schulfach_ID=LS.Schulfach_ID
+	--ORDER BY Q.Schulform_Bezeichnung,F.Schulfach_Bezeichnung;
+GO
+/****** Object:  UserDefinedFunction [dbo].[tf_alle_Schuler_Klasse_schuljahr]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE FUNCTION [dbo].[tf_alle_Schuler_Klasse_schuljahr] 
+(		
+	@Klassen_ID int, 
+	@Schuljahr nvarchar(9)
+)
+RETURNS TABLE 
+AS
+RETURN 
+(
+	-- Add the SELECT statement with parameter references here
+
+	SELECT S.Schüler_ID, Schüler_Name , Schüler_Vorname, G.Geschlecht_Bezeichnung, S.Schüler_Geburtstag
+	FROM dbo.tb_Schüler S INNER JOIN 
+	dbo.Geschlecht G ON S.Schüler_Geschlecht_ID=G.Geschlecht_ID	
+	INNER JOIN dbo.tb_Verbindung_Schueler_Klasse V on V.Schüler_ID=S.Schüler_ID
+	Where (V.Klassen_ID=@Klassen_ID  AND V.Schuljahr like @Schuljahr)
+
+)
+GO
+/****** Object:  Table [dbo].[Ergebnisse_Meldungen]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Ergebnisse_Meldungen](
+	[Mode] [nchar](3) NULL,
+	[Meldung] [nvarchar](max) NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Aufgabenarten]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Aufgabenarten](
+	[Aufgabenart_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Aufgabenart_Bezeichnung] [nchar](20) NOT NULL,
+ CONSTRAINT [PK_Aufgabenarten] PRIMARY KEY CLUSTERED 
+(
+	[Aufgabenart_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Raum]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Raum](
+	[Raum_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Raum_Nr] [nchar](10) NOT NULL,
+	[Raum_Bezeichnung] [nchar](20) NOT NULL,
+	[Raum_Klassen_ID] [int] NULL,
+	[Raum_Schulfach_ID] [int] NULL,
+	[Raum_Schulform_ID] [int] NULL,
+	[Raum_Kommentar] [nchar](50) NULL,
+ CONSTRAINT [PK_tb_Raum] PRIMARY KEY CLUSTERED 
+(
+	[Raum_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tb_Verwandschaftgrad]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tb_Verwandschaftgrad](
+	[Verwandschafts_ID] [int] IDENTITY(1,1) NOT NULL,
+	[Verwandschafts_Bezeichnung] [nchar](15) NOT NULL,
+ CONSTRAINT [PK_tb_Verwandschaftgrad] PRIMARY KEY CLUSTERED 
+(
+	[Verwandschafts_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+INSERT [dbo].[Ergebnisse_Meldungen] ([Mode], [Meldung]) VALUES (N'I  ', N'Es gibt schon eine Note für Schüler Reiter                         für Schulfach  Deutsch für  Aufgabenart Test                 für  Klasse 1 im Tag 4 Monat 1 Jahr
+		2017. Bitte überprüfen!')
+INSERT [dbo].[Ergebnisse_Meldungen] ([Mode], [Meldung]) VALUES (N'I  ', N'Es gibt schon eine Note für Schüler Reiter                         für Schulfach  Deutsch für  Aufgabenart Test                 für  Klasse 1 im Tag 1 Monat 1 Jahr
+		2030. Bitte überprüfen!')
+INSERT [dbo].[Ergebnisse_Meldungen] ([Mode], [Meldung]) VALUES (N'I  ', N'Es gibt schon eine Note für Schüler Reiter                         für Schulfach  Deutsch für  Aufgabenart Test                 für  Klasse 1 im Tag 1 Monat 1 Jahr
+		2040. Bitte überprüfen!')
+GO
+SET IDENTITY_INSERT [dbo].[Geschlecht] ON 
+
+INSERT [dbo].[Geschlecht] ([Geschlecht_ID], [Geschlecht_Bezeichnung]) VALUES (1, N'männlich  ')
+INSERT [dbo].[Geschlecht] ([Geschlecht_ID], [Geschlecht_Bezeichnung]) VALUES (2, N'weiblich  ')
+INSERT [dbo].[Geschlecht] ([Geschlecht_ID], [Geschlecht_Bezeichnung]) VALUES (3, N'divers    ')
+SET IDENTITY_INSERT [dbo].[Geschlecht] OFF
+GO
+SET IDENTITY_INSERT [dbo].[Schulform_Qualifikation] ON 
+
+INSERT [dbo].[Schulform_Qualifikation] ([Schulform_ID], [Schulform_Bezeichnung], [Schulform_Kommentar]) VALUES (1, N'Grundschule         ', N'Klasse 1-4          ')
+INSERT [dbo].[Schulform_Qualifikation] ([Schulform_ID], [Schulform_Bezeichnung], [Schulform_Kommentar]) VALUES (2, N'Mittelschule        ', N'Klasse 5-9          ')
+INSERT [dbo].[Schulform_Qualifikation] ([Schulform_ID], [Schulform_Bezeichnung], [Schulform_Kommentar]) VALUES (3, N'Realschule          ', N'Klasse 5-10         ')
+INSERT [dbo].[Schulform_Qualifikation] ([Schulform_ID], [Schulform_Bezeichnung], [Schulform_Kommentar]) VALUES (4, N'Gynmasium           ', N'Klasse 5-13         ')
+SET IDENTITY_INSERT [dbo].[Schulform_Qualifikation] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Aufgabenarten] ON 
+
+INSERT [dbo].[tb_Aufgabenarten] ([Aufgabenart_ID], [Aufgabenart_Bezeichnung]) VALUES (1, N'Test                ')
+INSERT [dbo].[tb_Aufgabenarten] ([Aufgabenart_ID], [Aufgabenart_Bezeichnung]) VALUES (2, N'Klausur             ')
+INSERT [dbo].[tb_Aufgabenarten] ([Aufgabenart_ID], [Aufgabenart_Bezeichnung]) VALUES (3, N'Vortrag             ')
+INSERT [dbo].[tb_Aufgabenarten] ([Aufgabenart_ID], [Aufgabenart_Bezeichnung]) VALUES (4, N'Mitarbeit           ')
+SET IDENTITY_INSERT [dbo].[tb_Aufgabenarten] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Berechtigten] ON 
+
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (1, 2, N'Reiter                        ', N'Tsvi                ', CAST(N'1986-10-01' AS Date), N'1010 Maple                                        ', 1, N'21201', N'Baltimore                     ', 1, N'664-555-0112        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (2, 1, N'Carson                        ', N'Jillian             ', CAST(N'1968-09-17' AS Date), N'1078 Aloe Vera Road                               ', 2, N'97005', N'Beaverton                     ', 0, N'517-555-0117        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (3, 2, N'Rounthwaite                   ', N'Roberta             ', CAST(N'1979-03-09' AS Date), N'1094 Loveridge Circle                             ', 3, N'97005', N'Beaverton                     ', 1, N'589-555-0147        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (4, 1, N'Bacon                         ', N'Dan                 ', CAST(N'1987-12-22' AS Date), N'1095 Loveridge Circle                             ', 3, N'97005', N'Beaverton                     ', 0, N'166-555-0159        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (5, 1, N'Kurjan                        ', N'Erica               ', CAST(N'1980-04-28' AS Date), N'1006 Deercreek Ln                                 ', 4, N'90706', N'Bellingham                    ', 0, N'265-555-0195        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (6, 2, N'Kurjan                        ', N'Kevin               ', CAST(N'1979-07-06' AS Date), N'1007 Deercreek Ln                                 ', 4, N'90706', N'Bellingham                    ', 1, N'714-555-0138        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (7, 1, N'Kleinerman                    ', N'Christian           ', CAST(N'1989-01-08' AS Date), N'105 Woodruff Ln.                                  ', 5, N'98225', N'Bellingham                    ', 0, N'846-555-0157        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (8, 2, N'Lee                           ', N'Dona                ', CAST(N'1989-04-15' AS Date), N'1057 Kirker Pass Road                             ', 6, N'98225', N'Bellingham                    ', 1, N'100-555-0174        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (9, 1, N'Lee                           ', N'Frank               ', CAST(N'1976-01-30' AS Date), N'1057 Kirker Pass Road                             ', 6, N'98225', N'Bellingham                    ', 0, N'158-555-0191        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (10, 1, N'Johnson                       ', N'Steve               ', CAST(N'1990-05-24' AS Date), N'1002 N. Spoonwood Court                           ', 78, N'94704', N'Bendigo                       ', 0, N'712-555-0170        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (11, 1, N'Johnson                       ', N'David               ', CAST(N'1973-12-23' AS Date), N'1002 N. Spoonwood Court                           ', 78, N'94704', N'Bendigo                       ', 1, N'166-555-0162        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (12, 2, N'Hagens                        ', N'Erina               ', CAST(N'1978-02-25' AS Date), N'1011 Yolanda Circle                               ', 9, N'94704', N'Berkeley                      ', 0, N'842-555-0158        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (13, 1, N'Rothkugel                     ', N'Yuhong              ', CAST(N'1987-06-06' AS Date), N'1019 Carletto Drive                               ', 55, N'94704', N'Berkeley                      ', 1, N'965-555-0155        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (14, 2, N'Rothkugel                     ', N'Michaela            ', CAST(N'1971-09-02' AS Date), N'1019 Carletto Drive                               ', 55, N'94704', N'Berkeley                      ', 0, N'454-555-0119        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (15, 1, N'Walker                        ', N'Brian               ', CAST(N'1978-01-29' AS Date), N'11, avenue du Président-Kennedy                   ', 3, N'93000', N'Bobigny                       ', 1, N'716-555-0127        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (16, 2, N'Welcker                       ', N'Yvonne              ', CAST(N'1987-05-26' AS Date), N'11, quai de l´ Iton                               ', 1, N'92100', N'Boulogne-Billancourt          ', 1, N'286-555-0189        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (17, 1, N'Welcker                       ', N'John                ', CAST(N'1990-05-17' AS Date), N'11, quai de l´ Iton                               ', 1, N'92100', N'Boulogne-Billancourt          ', 0, N'254-555-0114        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (18, 2, N'Ersan                         ', N'Kitti               ', CAST(N'1987-08-27' AS Date), N'1, rue de Varenne                                 ', 2, N'92100', N'Boulogne-Billancourt          ', 1, N'785-555-0132        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (19, 1, N'Ersan                         ', N'Ebru                ', CAST(N'1975-02-04' AS Date), N'1, rue de Varenne                                 ', 2, N'92100', N'Boulogne-Billancourt          ', 0, N'202-555-0187        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (20, 1, N'Duffy                         ', N'Terri               ', CAST(N'1968-03-09' AS Date), N'11, rue de l''Espace De Schengen                   ', 15, N'92100', N'Boulogne-Billancourt          ', 0, N'819-555-0175        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (21, 1, N'Sacksteder                    ', N'Sandeep             ', CAST(N'1991-05-31' AS Date), N'1020 Book Road                                    ', 14, N'98312', N'Bremerton                     ', 1, N'166-555-0156        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (22, 2, N'Sacksteder                    ', N'Lane                ', CAST(N'1980-11-13' AS Date), N'1020 Book Road                                    ', 14, N'98312', N'Bremerton                     ', 0, N'200-555-0117        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (23, 2, N'Fitzgerald                    ', N'Diane               ', CAST(N'1989-06-25' AS Date), N'1008 Lydia Lane                                   ', 75, N'98312', N'Bremerton                     ', 0, N'815-555-0138        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (24, 1, N'Fitzgerald                    ', N'Charles             ', CAST(N'1990-01-25' AS Date), N'1008 Lydia Lane                                   ', 75, N'98312', N'Bremerton                     ', 1, N'931-555-0118        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (25, 2, N'Decker                        ', N'Barbara             ', CAST(N'1974-05-03' AS Date), N'1016 Park Avenue                                  ', 63, N'91502', N'Burbank                       ', 1, N'119-555-0192        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (26, 2, N'Hesse                         ', N'Lola                ', CAST(N'1982-01-03' AS Date), N'1054 Vine Circle                                  ', 44, N'91502', N'Burbank                       ', 0, N'582-555-0178        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (27, 1, N'Hesse                         ', N'Stefen              ', CAST(N'1986-12-01' AS Date), N'1054 Vine Circle                                  ', 44, N'91502', N'Burbank                       ', 1, N'165-555-0113        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (28, 1, N'Valdez                        ', N'Rachel              ', CAST(N'1985-02-28' AS Date), N'1060 Mcelroy Court                                ', 12, N'91502', N'Burbank                       ', 0, N'1 (11) 500 555-0140 ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (29, 1, N'Galvin                        ', N'Michael             ', CAST(N'1975-12-25' AS Date), N'1077 Willow Court                                 ', 54, N'91502', N'Burbank                       ', 1, N'296-555-0121        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (30, 2, N'Galvin                        ', N'Janice              ', CAST(N'1977-03-18' AS Date), N'1077 Willow Court                                 ', 54, N'98168', N'Burbank                       ', 0, N'473-555-0117        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (31, 2, N'Norman-Young                  ', N'Laura               ', CAST(N'1988-12-07' AS Date), N'1029 Birchwood Dr                                 ', 87, N'98168', N'Burien                        ', 1, N'615-555-0110        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (32, 1, N'Young                         ', N'Garrett             ', CAST(N'1988-05-10' AS Date), N'1029 Birchwood Dr                                 ', 87, N'98168', N'Burien                        ', 0, N'609-555-0179        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (33, 1, N'Ingle                         ', N'Marcella            ', CAST(N'1975-11-05' AS Date), N'1028 Royal Oak Rd.                                ', 33, N'94010', N'Burlingame                    ', 1, N'539-555-0149        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (34, 1, N'Philips                       ', N'Stuart              ', CAST(N'1986-05-20' AS Date), N'1083 W. Hookston Road                             ', 60, N'95000', N'Burlingame                    ', 1, N'234-555-0169        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (35, 2, N'Philips                       ', N'Carola              ', CAST(N'1971-12-17' AS Date), N'1083 W. Hookston Road                             ', 60, N'95000', N'Burlingame                    ', 0, N'609-555-0153        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (36, 2, N'Tibbott                       ', N'Diane               ', CAST(N'1982-11-03' AS Date), N'1, rue de l´Avenir                                ', 80, N'78400', N'Chatou                        ', 0, N'361-555-0180        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (37, 1, N'Tibbott                       ', N'Gary                ', CAST(N'1966-12-05' AS Date), N'107, rue des Bouchers                             ', 80, N'78400', N'Chatou                        ', 1, N'901-555-0125        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (38, 1, N'Tibbott                       ', N'Jason               ', CAST(N'1975-05-17' AS Date), N'11, quai de l´ Iton                               ', 80, N'78400', N'Chatou                        ', 0, N'571-555-0179        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (39, 1, N'Kim                           ', N'Ivo                 ', CAST(N'1971-09-05' AS Date), N'1071 Stanz Grace St.                              ', 40, N'91910', N'Chula Vista                   ', 0, N'115-555-0179        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (40, 1, N'Kim                           ', N'Shanea              ', CAST(N'1989-03-28' AS Date), N'1071 Stanz Grace St.                              ', 40, N'91910', N'Chula Vista                   ', 1, N'810-555-0178        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (41, 1, N'Ortiz                         ', N'Ranjit              ', CAST(N'1954-04-24' AS Date), N'1044 San Carlos                                   ', 59, N'91910', N'Cincinnati                    ', 1, N'1 (11) 500 555-0117 ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (42, 1, N'Ortiz                         ', N'David               ', CAST(N'1983-06-22' AS Date), N'1044 San Carlos                                   ', 59, N'91910', N'Cincinnati                    ', 0, N'712-555-0119        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (43, 1, N'Alderson                      ', N'Greg                ', CAST(N'1978-06-26' AS Date), N'101 Adobe Dr                                      ', 41, N'2450 ', N'Coffs Harbour                 ', 0, N'332-555-0150        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (44, 2, N'Wu-Alderson                   ', N'Peng                ', CAST(N'1989-06-15' AS Date), N'101 Adobe Dr                                      ', 41, N'2450 ', N'Coffs Harbour                 ', 1, N'164-555-0164        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (45, 2, N'Tomic                         ', N'Lynn                ', CAST(N'1984-04-11' AS Date), N'1005 Fremont Street                               ', 76, N'94014', N'Colma                         ', 1, N'1 (11) 500 555-0190 ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (46, 1, N'Tomic                         ', N'Dragan              ', CAST(N'1970-11-12' AS Date), N'1005 Fremont Street                               ', 76, N'94014', N'Colma                         ', 0, N'117-555-0185        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (47, 1, N'LaMee                         ', N'Brian               ', CAST(N'1983-04-02' AS Date), N'1046 San Carlos Avenue                            ', 2, N'94014', N'Colma                         ', 0, N'313-555-0196        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (48, 1, N'Reeves                        ', N'Terrence            ', CAST(N'1977-07-10' AS Date), N'1005, rue des Bouchers                            ', 84, N'92700', N'Colombes                      ', 0, N'110-555-0115        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (49, 2, N'Reeves                        ', N'Randy               ', CAST(N'1986-09-13' AS Date), N'1005, rue des Bouchers                            ', 84, N'92700', N'Colombes                      ', 1, N'961-555-0122        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (50, 2, N'Pellow                        ', N'Paula               ', CAST(N'1983-10-26' AS Date), N'1032 Cowell Road                                  ', 86, N'92700', N'Colombes                      ', 1, N'727-555-0112        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (51, 1, N'Pellow                        ', N'Frank               ', CAST(N'1974-10-16' AS Date), N'1032 Cowell Road                                  ', 86, N'92700', N'Colombes                      ', 0, N'163-555-0147        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (52, 2, N'Spoon-Alberts                 ', N'Candice             ', CAST(N'1952-05-12' AS Date), N'11, allée des Princes                             ', 112, N'92700', N'Colombes                      ', 1, N'920-555-0177        ')
+INSERT [dbo].[tb_Berechtigten] ([Berechtigten_ID], [Berechtigten_Geschlecht_ID], [Berechtigten_Name], [Berechtigten_Vorname], [Berechtigten_Geburtsdatum], [Berechtigten_Adresse_Strasse], [Berechtigten_Adresse_H_Nr], [Berechtigten_Adresse_PLZ], [Berechtigten_Adresse_ORT], [Berechtigten_Notfallkontakt], [Berechtigten_Telefonnr]) VALUES (53, 1, N'Alberts                       ', N'Amy                 ', CAST(N'1978-03-06' AS Date), N'11, allée des Princes                             ', 112, N'92700', N'Colomiers                     ', 0, N'775-555-0164        ')
+SET IDENTITY_INSERT [dbo].[tb_Berechtigten] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Ergebnisse] ON 
+
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (1, CAST(N'2017-01-04' AS Date), 1, 2, 1, 2, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (10, CAST(N'2020-04-03' AS Date), 37, 17, 3, 2, 1, 25)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (100, CAST(N'2019-11-01' AS Date), 27, 14, 2, 5, 21, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (101, CAST(N'2019-11-01' AS Date), 25, 14, 2, 1, 21, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (102, CAST(N'2018-11-01' AS Date), 9, 16, 2, 2, 22, 24)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (103, CAST(N'2017-04-25' AS Date), 2, 16, 2, 3, 23, 24)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (104, CAST(N'2020-04-03' AS Date), 13, 18, 3, 5, 24, 37)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (105, CAST(N'2020-04-05' AS Date), 23, 18, 3, 3, 24, 37)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (106, CAST(N'2019-04-06' AS Date), 9, 2, 2, 2, 25, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (107, CAST(N'2017-12-05' AS Date), 2, 2, 2, 1, 26, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (108, CAST(N'2020-05-02' AS Date), 9, 3, 2, 3, 27, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (109, CAST(N'2019-03-15' AS Date), 2, 3, 2, 6, 28, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (11, CAST(N'2016-10-04' AS Date), 3, 2, 1, 1, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (110, CAST(N'2019-10-24' AS Date), 2, 3, 2, 5, 32, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (12, CAST(N'2016-10-04' AS Date), 8, 2, 1, 2, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (13, CAST(N'2016-10-04' AS Date), 12, 2, 1, 3, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (14, CAST(N'2017-11-03' AS Date), 1, 15, 1, 1, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (15, CAST(N'2017-11-03' AS Date), 5, 15, 1, 2, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (16, CAST(N'2017-11-03' AS Date), 28, 15, 1, 1, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (17, CAST(N'2017-11-03' AS Date), 22, 15, 1, 2, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (18, CAST(N'2017-11-03' AS Date), 30, 15, 1, 3, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (19, CAST(N'2019-12-05' AS Date), 6, 3, 4, 1, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (2, CAST(N'2017-01-05' AS Date), 5, 2, 1, 3, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (20, CAST(N'2020-11-06' AS Date), 26, 8, 1, 3, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (21, CAST(N'2020-11-06' AS Date), 20, 8, 1, 4, 3, 7)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (22, CAST(N'2017-04-26' AS Date), 4, 2, 1, 3, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (23, CAST(N'2017-04-26' AS Date), 7, 2, 1, 4, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (24, CAST(N'2017-04-26' AS Date), 15, 2, 1, 2, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (25, CAST(N'2017-04-26' AS Date), 18, 2, 1, 1, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (26, CAST(N'2018-03-20' AS Date), 3, 12, 3, 2, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (27, CAST(N'2018-03-20' AS Date), 8, 12, 3, 1, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (28, CAST(N'2018-03-20' AS Date), 12, 12, 3, 3, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (29, CAST(N'2019-04-27' AS Date), 1, 2, 4, 1, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (3, CAST(N'2017-01-06' AS Date), 28, 2, 1, 1, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (30, CAST(N'2019-04-27' AS Date), 5, 2, 4, 2, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (31, CAST(N'2019-04-27' AS Date), 28, 2, 4, 3, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (32, CAST(N'2019-04-27' AS Date), 22, 2, 4, 4, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (33, CAST(N'2019-04-27' AS Date), 30, 2, 4, 5, 5, 5)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (34, CAST(N'2020-04-07' AS Date), 6, 18, 3, 1, 5, 37)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (35, CAST(N'2016-11-08' AS Date), 10, 8, 1, 3, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (36, CAST(N'2016-11-08' AS Date), 11, 8, 1, 4, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (37, CAST(N'2016-11-08' AS Date), 14, 8, 1, 2, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (38, CAST(N'2016-11-08' AS Date), 17, 8, 1, 1, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (39, CAST(N'2016-11-08' AS Date), 19, 8, 1, 5, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (4, CAST(N'2017-01-07' AS Date), 22, 2, 1, 5, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (40, CAST(N'2016-11-08' AS Date), 21, 8, 1, 4, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (41, CAST(N'2016-11-08' AS Date), 29, 8, 1, 3, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (42, CAST(N'2016-11-08' AS Date), 24, 8, 1, 2, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (43, CAST(N'2018-05-05' AS Date), 4, 8, 4, 1, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (44, CAST(N'2018-05-05' AS Date), 7, 8, 4, 2, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (45, CAST(N'2018-05-05' AS Date), 15, 8, 4, 3, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (46, CAST(N'2018-05-05' AS Date), 18, 8, 4, 4, 10, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (47, CAST(N'2019-06-06' AS Date), 3, 3, 1, 1, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (48, CAST(N'2019-06-06' AS Date), 8, 3, 1, 2, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (49, CAST(N'2019-06-06' AS Date), 12, 3, 1, 3, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (5, CAST(N'2017-01-08' AS Date), 30, 2, 1, 1, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (50, CAST(N'2020-03-02' AS Date), 1, 3, 4, 4, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (51, CAST(N'2020-03-02' AS Date), 22, 3, 4, 3, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (52, CAST(N'2020-03-02' AS Date), 30, 3, 4, 2, 10, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (53, CAST(N'2020-04-04' AS Date), 5, 2, 4, 5, 11, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (54, CAST(N'2020-04-04' AS Date), 28, 2, 4, 6, 11, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (55, CAST(N'2016-10-01' AS Date), 25, 4, 1, 1, 12, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (56, CAST(N'2018-05-02' AS Date), 10, 13, 3, 2, 12, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (57, CAST(N'2018-05-02' AS Date), 11, 13, 3, 3, 12, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (58, CAST(N'2019-05-03' AS Date), 4, 9, 2, 1, 12, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (59, CAST(N'2019-05-03' AS Date), 7, 9, 2, 6, 12, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (6, CAST(N'2018-03-02' AS Date), 6, 8, 1, 2, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (60, CAST(N'2020-04-01' AS Date), 3, 11, 4, 1, 12, 9)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (61, CAST(N'2016-10-05' AS Date), 27, 10, 1, 2, 13, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (62, CAST(N'2018-05-02' AS Date), 14, 5, 2, 4, 13, 15)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (63, CAST(N'2018-05-02' AS Date), 17, 5, 2, 3, 13, 15)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (64, CAST(N'2018-05-02' AS Date), 19, 5, 2, 5, 13, 15)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (65, CAST(N'2019-04-02' AS Date), 15, 18, 3, 6, 13, 37)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (66, CAST(N'2020-04-02' AS Date), 12, 18, 3, 6, 13, 37)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (67, CAST(N'2017-09-06' AS Date), 21, 2, 2, 1, 14, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (68, CAST(N'2017-09-06' AS Date), 29, 2, 2, 2, 14, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (69, CAST(N'2017-09-06' AS Date), 24, 2, 2, 3, 14, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (7, CAST(N'2019-04-04' AS Date), 26, 16, 4, 1, 1, 33)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (70, CAST(N'2019-05-02' AS Date), 18, 9, 1, 4, 14, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (71, CAST(N'2017-04-01' AS Date), 13, 8, 2, 1, 15, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (72, CAST(N'2017-04-01' AS Date), 23, 8, 2, 6, 15, 28)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (73, CAST(N'2017-05-02' AS Date), 27, 7, 2, 1, 15, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (74, CAST(N'2017-05-02' AS Date), 25, 7, 2, 2, 15, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (75, CAST(N'2018-11-08' AS Date), 10, 2, 1, 1, 15, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (76, CAST(N'2018-11-08' AS Date), 11, 2, 1, 2, 15, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (77, CAST(N'2018-12-05' AS Date), 14, 2, 2, 5, 16, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (78, CAST(N'2018-12-05' AS Date), 17, 2, 2, 4, 16, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (79, CAST(N'2018-12-05' AS Date), 19, 2, 2, 3, 16, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (8, CAST(N'2019-04-04' AS Date), 20, 16, 4, 2, 1, 33)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (80, CAST(N'2019-12-05' AS Date), 15, 2, 2, 2, 16, 13)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (81, CAST(N'2018-10-12' AS Date), 21, 10, 2, 1, 17, 29)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (82, CAST(N'2018-10-12' AS Date), 29, 10, 2, 2, 17, 29)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (83, CAST(N'2018-10-12' AS Date), 24, 10, 2, 5, 17, 29)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (84, CAST(N'2019-10-20' AS Date), 18, 10, 2, 4, 17, 29)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (85, CAST(N'2017-12-02' AS Date), 13, 2, 2, 1, 18, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (86, CAST(N'2018-04-01' AS Date), 23, 2, 2, 3, 18, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (87, CAST(N'2019-05-10' AS Date), 27, 3, 2, 4, 18, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (88, CAST(N'2019-05-11' AS Date), 25, 3, 2, 5, 18, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (89, CAST(N'2019-05-12' AS Date), 10, 4, 2, 2, 18, 12)
+GO
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (9, CAST(N'2020-04-03' AS Date), 16, 17, 3, 6, 1, 25)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (90, CAST(N'2019-05-13' AS Date), 11, 4, 2, 3, 18, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (91, CAST(N'2019-05-14' AS Date), 14, 4, 2, 4, 19, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (92, CAST(N'2019-05-15' AS Date), 17, 4, 2, 1, 19, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (93, CAST(N'2019-05-16' AS Date), 19, 4, 2, 2, 19, 12)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (94, CAST(N'2016-10-04' AS Date), 9, 13, 2, 6, 20, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (95, CAST(N'2019-10-04' AS Date), 21, 13, 2, 4, 20, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (96, CAST(N'2019-10-04' AS Date), 29, 13, 2, 3, 20, 14)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (97, CAST(N'2019-10-04' AS Date), 24, 15, 2, 2, 20, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (98, CAST(N'2018-11-01' AS Date), 13, 15, 2, 1, 21, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (99, CAST(N'2018-11-01' AS Date), 23, 14, 2, 4, 21, 16)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (1, CAST(N'2017-01-04' AS Date), 1, 2, 1, 2, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (111, CAST(N'2030-01-01' AS Date), 1, 2, 1, 2, 1, 2)
+INSERT [dbo].[tb_Ergebnisse] ([Ergebnis_ID], [Ergebnis_Datum], [Schüler_ID], [Schulfach_ID], [Aufgabenart_ID], [Note], [Klassen_ID], [Raum_ID]) VALUES (112, CAST(N'2040-01-01' AS Date), 1, 2, 1, 2, 1, 2)
+SET IDENTITY_INSERT [dbo].[tb_Ergebnisse] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Klassen] ON 
+
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (1, 1, 1, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (2, 1, 2, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (3, 2, 1, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (4, 2, 2, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (5, 3, 1, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (6, 3, 2, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (7, 3, 3, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (8, 13, 1, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (10, 4, 2, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (11, 4, 1, 1)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (12, 5, 1, 2)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (13, 5, 2, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (14, 5, 3, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (15, 6, 1, 2)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (16, 6, 1, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (17, 6, 2, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (18, 7, 1, 2)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (19, 7, 2, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (20, 7, 3, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (21, 8, 1, 2)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (22, 8, 1, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (23, 8, 2, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (24, 9, 3, 2)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (25, 9, 1, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (26, 9, 2, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (27, 10, 1, 3)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (28, 10, 2, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (32, 11, 2, 4)
+INSERT [dbo].[tb_Klassen] ([Klassen_ID], [Klassen_Stufe], [Klassen_Untergruppe], [Schulform_ID]) VALUES (34, 12, 2, 4)
+SET IDENTITY_INSERT [dbo].[tb_Klassen] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Mitarbeiter] ON 
+
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (1, 7, 1, N'Mustermann', N'Max', N'Direktor', NULL)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (2, 5, 1, N'de Gaulle', N'Charles', N'Lehrer', 1)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (3, 4, 1, N'Chirac', N'Jacques', N'Lehrer', 2)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (4, 2, 2, N'Chirac', N'Bernadette', N'Lehrer', 3)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (5, 1, 1, N'Sarkozy', N'Nicolas', N'Hausmeister', NULL)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (6, 8, 2, N'Bruni', N'Carla', N'Sekretärin', NULL)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (7, 9, 1, N'Mitterand', N'François', N'Koch', NULL)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (8, 10, 2, N'Macron', N'Brigitte', N'Lehrer', 4)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (9, 11, 3, N'Giscard d’Estaing', N'Valéry', N'Lehrer', 1)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (10, 12, 2, N'de Gaulle', N'Yvonne', N'Lehrer', 2)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (11, 13, 1, N'Macron', N'Emmanuel', N'Lehrer', 4)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (12, 14, 1, N'Hollande', N'François', N'Lehrer', 3)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (13, 15, 3, N'Wurst', N'Conchita', N'Lehrer', 1)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (14, 16, 1, N'Wowereit', N'Klaus', N'Lehrer', 2)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (15, 17, 1, N'Mustermann', N'Moritz-Karl', N'Lehrer', 3)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (16, 18, 2, N'Mustermann', N'Maria', N'Lehrer', 3)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (17, 19, 1, N'Bruni Tedeschi', N'Alberto', N'Lehrer', 4)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (18, 20, 2, N'Bruni Borini', N'Marisa', N'Lehrer', 1)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (19, 21, 1, N'Pompidou', N'Georges', N'Lehrer', 2)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (20, 22, 3, N'Belmondo', N'Jean-Paul', N'Lehrer', 4)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (21, 23, 1, N'Poincaré', N'Raymond', N'Lehrer', 4)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (22, 24, 1, N'Pitt', N'Brad', N'Lehrer', 1)
+INSERT [dbo].[tb_Mitarbeiter] ([Mitarbeiter_ID], [Mitarbeiter_Personalnummer], [Mitarbeiter_Geschlecht_ID], [Mitarbeiter_Nachname], [Mitarbeiter_Vorname], [Mitarbeiter_Funktion], [Schulform_ID]) VALUES (23, 25, 2, N'Poppins', N'Mary', N'Lehrer', 1)
+SET IDENTITY_INSERT [dbo].[tb_Mitarbeiter] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Raum] ON 
+
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (1, N'101       ', N'Klassenraum         ', NULL, NULL, 1, N'                                                  ')
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (2, N'102       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (4, N'103       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (5, N'104       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (6, N'105       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (7, N'106       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (8, N'107       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (9, N'108       ', N'Klassenraum         ', NULL, NULL, 1, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (12, N'109       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (13, N'110       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (14, N'201       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (15, N'202       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (16, N'203       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (17, N'204       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (18, N'205       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (19, N'206       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (21, N'207       ', N'Klassenraum         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (22, N'208       ', N'Kunstraum           ', NULL, 16, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (23, N'209       ', N'Kunstraum           ', NULL, 16, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (24, N'210       ', N'Musikraum           ', NULL, 17, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (25, N'301       ', N'Musikraum           ', NULL, 17, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (26, N'302       ', N'Chemielabor         ', NULL, 9, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (27, N'303       ', N'Chemielabor         ', NULL, 9, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (28, N'304       ', N'Physiklabor         ', NULL, 10, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (29, N'305       ', N'Physiklabor         ', NULL, 10, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (30, N'306       ', N'Biologieraum        ', NULL, 12, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (31, N'307       ', N'Biologieraum        ', NULL, 12, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (32, N'308       ', N'Biologieraum        ', NULL, 12, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (33, N'309       ', N'Kunstraum           ', NULL, 16, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (34, N'310       ', N'Sektretariat        ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (35, N'1         ', N'Lehrerzimmer        ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (36, N'111       ', N'Geografieraum       ', NULL, 13, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (37, N'HG_02     ', N'Sporthalle          ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (38, N'311       ', N'Direktorat          ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (39, N'211       ', N'Hausmeister         ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (40, N'HG_01     ', N'Schulmensa          ', NULL, NULL, NULL, NULL)
+INSERT [dbo].[tb_Raum] ([Raum_ID], [Raum_Nr], [Raum_Bezeichnung], [Raum_Klassen_ID], [Raum_Schulfach_ID], [Raum_Schulform_ID], [Raum_Kommentar]) VALUES (41, N'111       ', N'Erste-Hilfe-Raum    ', NULL, NULL, NULL, NULL)
+SET IDENTITY_INSERT [dbo].[tb_Raum] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Schüler] ON 
+
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (1, N'Reiter                        ', N'Michael             ', 1, CAST(N'2010-10-01' AS Date), N'1010 Maple                                        ', 1, N'21201', N'Baltimore                     ', 2016, 2028)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (2, N'Rounthwaite                   ', N'Kendall             ', 1, CAST(N'2003-03-09' AS Date), N'1094 Loveridge Circle                             ', 3, N'97005', N'Beaverton                     ', 2009, 2021)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (3, N'Kurjan                        ', N'Susan               ', 2, CAST(N'2009-07-06' AS Date), N'1007 Deercreek Ln                                 ', 4, N'90706', N'Bellingham                    ', 2015, 2027)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (4, N'Lee                           ', N'Russell             ', 1, CAST(N'2008-04-15' AS Date), N'1057 Kirker Pass Road                             ', 6, N'98225', N'Bellingham                    ', 2014, 2026)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (5, N'Johnson                       ', N'Sylvester           ', 2, CAST(N'2010-05-24' AS Date), N'1002 N. Spoonwood Court                           ', 78, N'94704', N'Bendigo                       ', 2016, 2028)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (6, N'Rothkugel                     ', N'Betsy               ', 3, CAST(N'2011-09-02' AS Date), N'1019 Carletto Drive                               ', 55, N'94704', N'Berkeley                      ', 2017, 2021)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (7, N'Walker                        ', N'Samantha            ', 1, CAST(N'2008-01-29' AS Date), N'11, avenue du Président-Kennedy                   ', 3, N'93000', N'Bobigny                       ', 2014, 2026)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (8, N'Welcker                       ', N'Michael             ', 2, CAST(N'2009-05-17' AS Date), N'11, quai de l´ Iton                               ', 1, N'92100', N'Boulogne-Billancourt          ', 2015, 2020)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (9, N'Ersan                         ', N'Doloris             ', 1, CAST(N'2004-08-27' AS Date), N'1, rue de Varenne                                 ', 2, N'92100', N'Boulogne-Billancourt          ', 2010, 2015)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (10, N'Sacksteder                    ', N'Mike                ', 1, CAST(N'2007-11-13' AS Date), N'1020 Book Road                                    ', 14, N'98312', N'Bremerton                     ', 2013, 2018)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (12, N'Fitzgerald                    ', N'Jan                 ', 2, CAST(N'2009-01-25' AS Date), N'1008 Lydia Lane                                   ', 75, N'98312', N'Bremerton                     ', 2015, 2020)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (11, N'Decker                        ', N'Linda               ', 2, CAST(N'2007-05-03' AS Date), N'1016 Park Avenue                                  ', 63, N'91502', N'Burbank                       ', 2013, 2018)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (13, N'Hesse                         ', N'Anibal              ', 1, CAST(N'2005-01-03' AS Date), N'1054 Vine Circle                                  ', 44, N'91502', N'Burbank                       ', 2011, 2016)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (26, N'Galvin                        ', N'Sandra              ', 1, CAST(N'2012-12-25' AS Date), N'1077 Willow Court                                 ', 54, N'91502', N'Burbank                       ', 2018, 2022)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (14, N'Galvin                        ', N'Gordon              ', 2, CAST(N'2007-03-18' AS Date), N'1077 Willow Court                                 ', 54, N'98168', N'Burbank                       ', 2013, 2019)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (15, N'Young                         ', N'Pat                 ', 1, CAST(N'2008-05-10' AS Date), N'1029 Birchwood Dr                                 ', 87, N'98168', N'Burien                        ', 2014, 2020)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (16, N'Ingle                         ', N'Cynthia             ', 2, CAST(N'2013-11-05' AS Date), N'1028 Royal Oak Rd.                                ', 33, N'94010', N'Burlingame                    ', 2019, 2023)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (37, N'Philips                       ', N'Denise              ', 1, CAST(N'2014-05-20' AS Date), N'1083 W. Hookston Road                             ', 60, N'95000', N'Burlingame                    ', 2019, 2023)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (17, N'Philips                       ', N'Mandar              ', 1, CAST(N'2007-12-17' AS Date), N'1083 W. Hookston Road                             ', 60, N'95000', N'Burlingame                    ', 2013, 2019)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (18, N'Tibbott                       ', N'John                ', 2, CAST(N'2008-05-17' AS Date), N'11, quai de l´ Iton                               ', 80, N'78400', N'Chatou                        ', 2014, 2020)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (19, N'Kim                           ', N'Janeth              ', 1, CAST(N'2007-09-05' AS Date), N'1071 Stanz Grace St.                              ', 40, N'91910', N'Chula Vista                   ', 2013, 2019)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (20, N'Ortiz                         ', N'Mary                ', 2, CAST(N'2012-04-24' AS Date), N'1044 San Carlos                                   ', 59, N'91910', N'Cincinnati                    ', 2018, 2022)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (27, N'Ortiz                         ', N'Olinda              ', 2, CAST(N'2006-06-22' AS Date), N'1044 San Carlos                                   ', 59, N'91910', N'Cincinnati                    ', 2012, 2018)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (21, N'Alderson                      ', N'Shelley             ', 1, CAST(N'2007-06-26' AS Date), N'101 Adobe Dr                                      ', 41, N'2450 ', N'Coffs Harbour                 ', 2013, 2019)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (28, N'Wu-Alderson                   ', N'Ashvini             ', 2, CAST(N'2010-06-15' AS Date), N'101 Adobe Dr                                      ', 41, N'2450 ', N'Coffs Harbour                 ', 2016, 2028)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (22, N'Tomic                         ', N'Garrett             ', 1, CAST(N'2010-11-12' AS Date), N'1005 Fremont Street                               ', 76, N'94014', N'Colma                         ', 2016, 2021)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (23, N'Reeves                        ', N'Raymond             ', 2, CAST(N'2005-07-10' AS Date), N'1005, rue des Bouchers                            ', 84, N'92700', N'Colombes                      ', 2011, 2017)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (29, N'Reeves                        ', N'Dan                 ', 2, CAST(N'2007-09-13' AS Date), N'1005, rue des Bouchers                            ', 84, N'92700', N'Colombes                      ', 2013, 2025)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (24, N'Pellow                        ', N'Angela              ', 1, CAST(N'2007-10-26' AS Date), N'1032 Cowell Road                                  ', 86, N'92700', N'Colombes                      ', 2013, 2018)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (30, N'Pellow                        ', N'Michael             ', 2, CAST(N'2010-10-16' AS Date), N'1032 Cowell Road                                  ', 86, N'92700', N'Colombes                      ', 2016, 2022)
+INSERT [dbo].[tb_Schüler] ([Schüler_ID], [Schüler_Name], [Schüler_Vorname], [Schüler_Geschlecht_ID], [Schüler_Geburtstag], [Schüler_Adresse_Strasse], [Schüler_Adresse_H_Nr], [Schüler_Adresse_PLZ], [Schüler_Adresse_Ort], [Schüler_Schulbeginn], [Schüler_Abschlussjahrgang]) VALUES (25, N'Spoon-Alberts                 ', N'Mark                ', 1, CAST(N'2006-05-12' AS Date), N'11, allée des Princes                             ', 112, N'92700', N'Colombes                      ', 2012, 2024)
+SET IDENTITY_INSERT [dbo].[tb_Schüler] OFF
+GO
+SET IDENTITY_INSERT [dbo].[tb_Schulfächer] ON 
+
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (2, N'Deutsch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (3, N'Englisch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (4, N'Französisch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (5, N'Spanisch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (6, N'Italienisch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (7, N'Russisch', N'Sprache             ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (8, N'Mathematik', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (9, N'Chemie', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (10, N'Physik', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (11, N'Astronomie', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (12, N'Biologie', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (13, N'Geografie', N'Naturwissenschaft   ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (14, N'Geschichte', N'Geisteswissenschaft ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (15, N'Ethik', N'Geisteswissenschaft ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (16, N'Kunst', N'Geisteswissenschaft ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (17, N'Musik', N'Geisteswissenschaft ')
+INSERT [dbo].[tb_Schulfächer] ([Schulfach_ID], [Schulfach_Bezeichnung], [Schulfach_Kategorie]) VALUES (18, N'Sport', N'Sport               ')
+SET IDENTITY_INSERT [dbo].[tb_Schulfächer] OFF
+GO
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (1, 1, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (2, 1, 3)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (3, 2, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (4, 2, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (5, 3, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (6, 3, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (7, 3, 4)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (8, 4, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (9, 4, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (10, 5, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (11, 5, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (12, 5, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (13, 6, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (14, 6, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (15, 7, 4)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (16, 8, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (17, 8, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (18, 9, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (19, 9, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (20, 9, 4)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (21, 10, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (22, 10, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (23, 12, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (24, 12, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (25, 11, 3)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (26, 13, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (27, 13, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (28, 13, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (29, 14, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (30, 14, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (31, 15, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (32, 15, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (33, 16, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (34, 17, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (35, 17, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (36, 18, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (37, 18, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (38, 18, 4)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (39, 19, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (40, 19, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (41, 20, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (42, 20, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (43, 21, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (44, 21, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (45, 22, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (46, 22, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (47, 22, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (48, 23, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (49, 23, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (50, 24, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (51, 24, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (52, 25, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (53, 25, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (41, 27, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (42, 27, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (29, 26, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (30, 26, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (34, 37, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (35, 37, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (44, 28, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (48, 29, 2)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (49, 29, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (50, 30, 1)
+INSERT [dbo].[tb_Verbindung_Berechtigten_Schüler] ([Berechtigten_ID], [Schüler_ID], [Verwandschaftsgrad_ID]) VALUES (51, 30, 2)
+GO
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 2, 12, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 3, 15, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 2, 16, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (2, 17, 4, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (3, 16, 12, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 8, 8, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 8, 15, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 8, 13, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 11, 1, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 12, 2, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 5, 15, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 7, 18, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 3, 20, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 5, 21, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 7, 25, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 10, 19, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 11, 17, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (13, 2, 6, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 4, 24, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 10, 22, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (15, 15, 27, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (16, 18, 28, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (17, 17, 34, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (18, 16, 1, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (19, 7, 18, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (20, 10, 25, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (21, 5, 26, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] ([Mitarbeiter_ID], [Schulfach_ID], [Klassen_ID], [Schuljahr]) VALUES (22, 14, 7, N'2019-2020')
+GO
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (2, 17)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (3, 16)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (4, 2)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (4, 3)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (4, 4)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (8, 8)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (9, 11)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (9, 12)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (10, 2)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (10, 5)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (10, 7)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (11, 3)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (11, 5)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (11, 7)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (12, 10)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (12, 11)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (13, 12)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (13, 2)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (14, 4)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (14, 10)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (15, 15)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (16, 18)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (17, 17)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (18, 16)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (18, 6)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (19, 6)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (19, 7)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (20, 9)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (20, 10)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (21, 10)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (21, 5)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (22, 3)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (22, 14)
+INSERT [dbo].[tb_Verbindung_Lehrer_Schulfach] ([Mitarbeiter_ID], [Schulfach_ID]) VALUES (23, 12)
+GO
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (1, 10, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (1, 5, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (1, 3, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (1, 1, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (2, 32, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (2, 28, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (2, 26, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (2, 23, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (3, 12, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (3, 10, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (3, 5, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (3, 3, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 15, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 12, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 10, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (4, 5, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (5, 11, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (5, 5, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (5, 3, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (5, 1, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (6, 5, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (6, 3, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (6, 1, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (7, 15, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (7, 12, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (7, 10, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (7, 5, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 14, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 10, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 5, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (8, 3, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 27, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 25, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 22, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (9, 20, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 18, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 15, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 12, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (10, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 18, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 15, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 12, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (11, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 13, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 10, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 5, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (12, 3, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (13, 24, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (13, 21, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (13, 18, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (13, 15, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 19, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 16, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 13, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (14, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (15, 16, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (15, 13, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (15, 10, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (15, 5, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (16, 1, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (17, 19, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (17, 16, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (17, 13, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (17, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (18, 17, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (18, 14, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (18, 10, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (18, 5, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (19, 19, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (19, 16, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (19, 13, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (19, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (20, 3, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (20, 1, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (21, 20, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (21, 17, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (21, 14, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (21, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (22, 10, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (22, 5, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (22, 3, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (22, 1, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (23, 24, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (23, 21, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (23, 18, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (23, 15, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (24, 20, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (24, 17, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (24, 14, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (24, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (25, 21, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (25, 18, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (25, 15, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (25, 12, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (26, 3, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (26, 1, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (27, 21, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (27, 18, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (27, 15, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (27, 13, N'2016-2017')
+GO
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (28, 11, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (28, 5, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (28, 3, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (28, 1, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (29, 20, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (29, 17, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (29, 14, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (29, 10, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (30, 10, N'2019-2020')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (30, 5, N'2018-2019')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (30, 3, N'2017-2018')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (30, 1, N'2016-2017')
+INSERT [dbo].[tb_Verbindung_Schueler_Klasse] ([Schüler_ID], [Klassen_ID], [Schuljahr]) VALUES (37, 1, N'2019-2020')
+GO
+SET IDENTITY_INSERT [dbo].[tb_Verwandschaftgrad] ON 
+
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (1, N'Mutter         ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (2, N'Vater          ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (3, N'Oma            ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (4, N'Opa            ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (5, N'Tante          ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (6, N'Onkel          ')
+INSERT [dbo].[tb_Verwandschaftgrad] ([Verwandschafts_ID], [Verwandschafts_Bezeichnung]) VALUES (7, N'Geschwister    ')
+SET IDENTITY_INSERT [dbo].[tb_Verwandschaftgrad] OFF
+GO
+/****** Object:  Index [IX_tb_Aufgabenarten_Bezeichnung_Non_Clustered]    Script Date: 30/04/2020 10:50:20 ******/
+CREATE NONCLUSTERED INDEX [IX_tb_Aufgabenarten_Bezeichnung_Non_Clustered] ON [dbo].[tb_Aufgabenarten]
+(
+	[Aufgabenart_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_tb_Schulfächer_Bezeichnung_Non_Clustered]    Script Date: 30/04/2020 10:50:20 ******/
+CREATE UNIQUE NONCLUSTERED INDEX [IX_tb_Schulfächer_Bezeichnung_Non_Clustered] ON [dbo].[tb_Schulfächer]
+(
+	[Schulfach_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[tb_Ergebnisse] ADD  CONSTRAINT [DF_tb_Ergebnisse_Ergebnis_Datum]  DEFAULT (getdate()) FOR [Ergebnis_Datum]
+GO
+ALTER TABLE [dbo].[tb_Raum]  WITH CHECK ADD  CONSTRAINT [FK_tb_Raum_Schulform_qualifikation] FOREIGN KEY([Raum_Schulform_ID])
+REFERENCES [dbo].[Schulform_Qualifikation] ([Schulform_ID])
+GO
+ALTER TABLE [dbo].[tb_Raum] CHECK CONSTRAINT [FK_tb_Raum_Schulform_qualifikation]
+GO
+ALTER TABLE [dbo].[tb_Raum]  WITH CHECK ADD  CONSTRAINT [FK_tb_Raum_tb_Klassen] FOREIGN KEY([Raum_Klassen_ID])
+REFERENCES [dbo].[tb_Klassen] ([Klassen_ID])
+GO
+ALTER TABLE [dbo].[tb_Raum] CHECK CONSTRAINT [FK_tb_Raum_tb_Klassen]
+GO
+ALTER TABLE [dbo].[tb_Raum]  WITH CHECK ADD  CONSTRAINT [FK_tb_Raum_tb_Schulfächer] FOREIGN KEY([Raum_Schulfach_ID])
+REFERENCES [dbo].[tb_Schulfächer] ([Schulfach_ID])
+GO
+ALTER TABLE [dbo].[tb_Raum] CHECK CONSTRAINT [FK_tb_Raum_tb_Schulfächer]
+GO
+ALTER TABLE [dbo].[tb_Berechtigten]  WITH CHECK ADD  CONSTRAINT [CK_tb_Berechtigten_Adresse_H_Nr] CHECK  (([Berechtigten_Adresse_H_Nr]>(0)))
+GO
+ALTER TABLE [dbo].[tb_Berechtigten] CHECK CONSTRAINT [CK_tb_Berechtigten_Adresse_H_Nr]
+GO
+ALTER TABLE [dbo].[tb_Berechtigten]  WITH CHECK ADD  CONSTRAINT [CK_tb_Berechtigten_Berechtigten_Geschlecht_ID] CHECK  (([Berechtigten_Geschlecht_ID]>(0) AND [Berechtigten_Geschlecht_ID]<(4)))
+GO
+ALTER TABLE [dbo].[tb_Berechtigten] CHECK CONSTRAINT [CK_tb_Berechtigten_Berechtigten_Geschlecht_ID]
+GO
+ALTER TABLE [dbo].[tb_Berechtigten]  WITH CHECK ADD  CONSTRAINT [CK_tb_Berechtigten_Geschlechts_ID] CHECK  (([Berechtigten_Geschlecht_ID]>(0) AND [Berechtigten_Geschlecht_ID]<(4)))
+GO
+ALTER TABLE [dbo].[tb_Berechtigten] CHECK CONSTRAINT [CK_tb_Berechtigten_Geschlechts_ID]
+GO
+ALTER TABLE [dbo].[tb_Berechtigten]  WITH CHECK ADD  CONSTRAINT [CK_tb_Berechtigten_Notfallkontakt] CHECK  (([Berechtigten_Notfallkontakt]<(2)))
+GO
+ALTER TABLE [dbo].[tb_Berechtigten] CHECK CONSTRAINT [CK_tb_Berechtigten_Notfallkontakt]
+GO
+ALTER TABLE [dbo].[tb_Ergebnisse]  WITH CHECK ADD  CONSTRAINT [CK_tb_Ergebnisse_Note] CHECK  (([Note]>(0) AND [Note]<(7)))
+GO
+ALTER TABLE [dbo].[tb_Ergebnisse] CHECK CONSTRAINT [CK_tb_Ergebnisse_Note]
+GO
+ALTER TABLE [dbo].[tb_Mitarbeiter]  WITH CHECK ADD  CONSTRAINT [CK_tb_Mitarbeiter_Geschlecht_ID] CHECK  (([Mitarbeiter_Geschlecht_ID]>(0) AND [Mitarbeiter_Geschlecht_ID]<(4)))
+GO
+ALTER TABLE [dbo].[tb_Mitarbeiter] CHECK CONSTRAINT [CK_tb_Mitarbeiter_Geschlecht_ID]
+GO
+ALTER TABLE [dbo].[tb_Mitarbeiter]  WITH CHECK ADD  CONSTRAINT [CK_tb_Mitarbeiter_Schulform_ID] CHECK  (([Schulform_ID]<(5)))
+GO
+ALTER TABLE [dbo].[tb_Mitarbeiter] CHECK CONSTRAINT [CK_tb_Mitarbeiter_Schulform_ID]
+GO
+ALTER TABLE [dbo].[tb_Schüler]  WITH CHECK ADD  CONSTRAINT [CK_tb_Schüler_Geschlecht_ID] CHECK  (([Schüler_Geschlecht_ID]>(0) AND [Schüler_Geschlecht_ID]<(4)))
+GO
+ALTER TABLE [dbo].[tb_Schüler] CHECK CONSTRAINT [CK_tb_Schüler_Geschlecht_ID]
+GO
+ALTER TABLE [dbo].[tb_Verbindung_Berechtigten_Schüler]  WITH CHECK ADD  CONSTRAINT [CK_tb_Verbindung_Berechtigten_Schüler_Verwandschaftsgrad] CHECK  (([Verwandschaftsgrad_ID]>(0) AND [Verwandschaftsgrad_ID]<(8)))
+GO
+ALTER TABLE [dbo].[tb_Verbindung_Berechtigten_Schüler] CHECK CONSTRAINT [CK_tb_Verbindung_Berechtigten_Schüler_Verwandschaftsgrad]
+GO
+ALTER TABLE [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr]  WITH CHECK ADD  CONSTRAINT [CK_tb_Verbindung_Lehrer_Klasse_Schuljahr_Mitarbeiter_ID] CHECK  (([Mitarbeiter_ID]<>(1) OR [Mitarbeiter_ID]<>(5) OR [Mitarbeiter_ID]<>(6) OR [Mitarbeiter_ID]<>(7)))
+GO
+ALTER TABLE [dbo].[tb_Verbindung_Lehrer_Klasse_Schuljahr] CHECK CONSTRAINT [CK_tb_Verbindung_Lehrer_Klasse_Schuljahr_Mitarbeiter_ID]
+GO
+/****** Object:  StoredProcedure [dbo].[sp_Add_Schuler]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROCEDURE [dbo].[sp_Add_Schuler] 
+
+ @Schüler_Name nchar(30),
+ @Schüler_Vorname nchar(20),
+ @Schüler_Geschlecht_ID int,
+ @Schüler_Geburtstag date,
+ @Schüler_Adresse_Strasse nchar(50),
+ @Schüler_Adresse_H_Nr int,
+ @Schüler_Adresse_PLZ nchar(10),
+ @Schüler_Adresse_Ort nchar(30),
+
+
+	@Erfolg bit OUTPUT, -- geklappt oder nicht
+	@Feedback VARCHAR(MAX) OUTPUT -- Fehlermeldungen etc.
+AS
+BEGIN
+
+	DECLARE @Schüler_Schulbeginn int;
+	SET @Schüler_Schulbeginn=Convert(int,Year(GETDATE()));
+	SET @Erfolg = 1;
+	SET @Feedback = 'Alles OK!';
+	DECLARE @msg AS varchar(MAX);
+	-------------------------------------------------------------------
+	
+	BEGIN TRY 
+		-- Geburtsdatum testen (nicht Zukunft)
+		IF @Schüler_Geburtstag  >= GETDATE()
+			THROW 50001, 'Falsches Geburtsdatum, bitte korrigieren!', 1;		
+			
+		--Prüfen ob Adressnummer gut eingegeben wurde
+		IF @Schüler_Adresse_H_Nr<=0
+		   THROW 50002, 'Falsches Straßenummer, bitte korrigieren!', 1; 
+
+		   -- Prüfen ob Schüler schon in der Schule aufgezeichnet ist
+		IF dbo.sf_is_schuler_schon_in_der_Schule( @Schüler_Name, @Schüler_Vorname, @Schüler_Geschlecht_ID, @Schüler_Geburtstag) = 1
+			THROW 50003, 'Dieser Schüler/in schon existiert in der Schule, bitte korrigieren!', 1;
+			
+
+					
+			INSERT INTO dbo.tb_Schüler 
+				   (Schüler_Name,Schüler_Vorname,Schüler_Geschlecht_ID,Schüler_Geburtstag,Schüler_Adresse_Strasse,
+                    Schüler_Adresse_H_Nr, Schüler_Adresse_PLZ, Schüler_Adresse_Ort,Schüler_Schulbeginn )
+			VALUES (@Schüler_Name,@Schüler_Vorname,@Schüler_Geschlecht_ID,@Schüler_Geburtstag,@Schüler_Adresse_Strasse,
+                    @Schüler_Adresse_H_Nr, @Schüler_Adresse_PLZ, @Schüler_Adresse_Ort,@Schüler_Schulbeginn);
+
+			SET @Feedback = '1 Schuler hinzugefügt';
+		
+	
+	END TRY 
+	BEGIN CATCH
+   
+		SET @Erfolg = 0; -- nicht geklappt--
+		SET @Feedback = 
+			'Fehler Nr. ' + CONVERT(varchar, ERROR_NUMBER()) + ' ' +
+			ERROR_MESSAGE();
+	END CATCH;    
+END
+GO
+/****** Object:  Trigger [dbo].[tr_Ergebnisse_INSERT_Test]    Script Date: 30/04/2020 10:50:20 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TRIGGER [dbo].[tr_Ergebnisse_INSERT_Test] 
+   ON [dbo].[tb_Ergebnisse]    
+   FOR INSERT
+AS 
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+    
+	-- Zeitbudget testen - prüfen, ob weniger als 10 Std. für laufenden Monat übrig bleibt --
+	DECLARE @Ergebnis_Datum date;
+	DECLARE @Schüler_ID     int;
+    DECLARE @Schulfach_ID int;
+    DECLARE @Aufgabenart_ID   int;
+    DECLARE @Klassen_ID   int;
+	
+/*
+https://docs.microsoft.com/de-de/sql/relational-databases/triggers/use-the-inserted-and-deleted-tables?view=sql-server-2017
+
+DML-Triggeranweisungen verwenden zwei besondere Tabellen: 
+die inserted-Tabelle und die deleted-Tabelle. 
+SQL Server erstellt und verwendet diese Tabellen automatisch. 
+Sie können diese temporären, speicherresidenten Tabellen verwenden, 
+um die Auswirkungen bestimmter Datenänderungen zu testen 
+und Bedingungen für DML-Triggeraktionen festzulegen. 
+Das direkte Ändern der Daten in den Tabellen 
+bzw. das Ausführen von Data Definition Language-(DDL-)Vorgängen für die Tabellen, 
+beispielsweise CREATE INDEX, ist nicht möglich.
+*/
+
+	SELECT @Schulfach_ID = Schulfach_ID  FROM inserted;
+	SELECT @Schüler_ID = Schüler_ID FROM inserted;
+	SELECT @Ergebnis_Datum = Ergebnis_Datum FROM inserted;
+	SELECT @Klassen_ID  = Klassen_ID  FROM inserted;
+	SELECT @Aufgabenart_ID  = Aufgabenart_ID FROM inserted;
+
+	DECLARE @count smallint;
+
+	SELECT  @count= Count(*)
+	FROM dbo.tb_Ergebnisse 
+	Where (Schulfach_ID = @Schulfach_ID AND Schüler_ID = @Schüler_ID AND Ergebnis_Datum = @Ergebnis_Datum
+	        AND Klassen_ID  = @Klassen_ID AND Aufgabenart_ID  = @Aufgabenart_ID);
+
+	----- Wenn @count>0 dann ist disen Datensatz schon da
+	
+		IF (@count>0)
+	BEGIN
+						
+		DECLARE @schuler_name nvarchar(50);
+		DECLARE @schulfach_name  nvarchar(50);
+		DECLARE @Aufgabenart    nvarchar(50);
+		
+		SELECT @schuler_name  = dbo.tb_Schüler.Schüler_Name
+		FROM dbo.tb_Schüler
+		WHERE Schüler_ID = @Schüler_ID;
+		
+		SELECT @schulfach_name  = dbo.tb_Schulfächer.Schulfach_Bezeichnung
+		FROM dbo.tb_Schulfächer
+		WHERE Schulfach_ID = @Schulfach_ID; 
+
+		SELECT @Aufgabenart  = dbo.tb_Aufgabenarten.Aufgabenart_Bezeichnung
+		FROM dbo.tb_Aufgabenarten
+		WHERE Aufgabenart_ID  = @Aufgabenart_ID;
+
+		DECLARE @Monat int;
+		SET @Monat = MONTH(@Ergebnis_Datum );
+		DECLARE @Jahr int;
+		SET @Jahr = YEAR(@Ergebnis_Datum);
+		
+		DECLARE @Tag int;
+		SET @TAg = DAY(@Ergebnis_Datum );
+
+		DECLARE @msg AS varchar(MAX);
+		SET @msg = 
+		FORMATMESSAGE('Es gibt schon eine Note für Schüler %s für Schulfach  %s für  Aufgabenart %s für  Klasse %i im Tag %i Monat %i Jahr
+		%i. Bitte überprüfen!', 
+		@schuler_name , @schulfach_name, @Aufgabenart, @Klassen_ID,@Tag, @Monat, @Jahr);
+		
+		
+		INSERT INTO dbo.Ergebnisse_Meldungen
+					(Mode, Meldung)
+					VALUES ('I', @msg);	
+	END
+
+
+END
+GO
+ALTER TABLE [dbo].[tb_Ergebnisse] ENABLE TRIGGER [tr_Ergebnisse_INSERT_Test]
+GO
+USE [master]
+GO
+ALTER DATABASE [Schulnotenverwaltung_Draft] SET  READ_WRITE 
+GO
